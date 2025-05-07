@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Deals{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto py-8">
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold">Local Deals</h1>
+        <a href="{{ url_for('create_deal') }}" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+            Post a Deal
+        </a>
+    </div>
+
+    <div class="mb-8">
+        <div class="flex gap-4 bg-white p-4 rounded-lg shadow-sm">
+            <input type="text" id="searchInput" placeholder="Search deals..." 
+                class="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+            <select id="filterType" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="all">All Types</option>
+                <option value="free">Free Items</option>
+                <option value="sale">For Sale</option>
+                <option value="rent">For Rent</option>
+            </select>
+            <button onclick="filterDeals()" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                Filter
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="dealsGrid">
+        {% for deal in deals %}
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <img src="{{ deal.image or 'https://via.placeholder.com/300x200' }}" alt="{{ deal.title }}" 
+                class="w-full h-48 object-cover">
+            <div class="p-4">
+                <h3 class="text-lg font-semibold mb-2">{{ deal.title }}</h3>
+                <p class="text-gray-600 mb-4">{{ deal.description }}</p>
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-primary font-medium">
+                        {% if deal.is_rental %}
+                            Rental - $5 deposit
+                        {% elif deal.price == 0 %}
+                            Free
+                        {% else %}
+                            ${{ "%.2f"|format(deal.price) }}
+                        {% endif %}
+                    </span>
+                    <span class="text-gray-500">{{ deal.location }}</span>
+                </div>
+                <div class="flex space-x-2">
+                    {% if deal.is_rental %}
+                        <button onclick="rentItem({{ deal.id }})" class="flex-1 bg-primary text-white py-2 px-4 rounded hover:bg-blue-700">
+                            Rent Now
+                        </button>
+                    {% else %}
+                        <button onclick="claimItem({{ deal.id }})" class="flex-1 bg-primary text-white py-2 px-4 rounded hover:bg-blue-700">
+                            Claim
+                        </button>
+                    {% endif %}
+                    <button onclick="contactOwner({{ deal.user_id }})" class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100">
+                        Contact
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Rent Modal -->
+<div id="rentModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Rent Item</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-gray-500">A $5 deposit will be charged and refunded when the item is returned.</p>
+            </div>
+            <div class="mt-4">
+                <!-- Payment UI (mock) -->
+                <div class="mb-4">
+                    <input type="text" placeholder="Card Number" class="w-full p-2 border rounded">
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <input type="text" placeholder="MM/YY" class="p-2 border rounded">
+                    <input type="text" placeholder="CVC" class="p-2 border rounded">
+                </div>
+                <div class="flex justify-end mt-2">
+                    <button onclick="closeRentModal()" class="mr-2 px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+                        Cancel
+                    </button>
+                    <button onclick="processRental()" class="px-4 py-2 bg-primary text-white rounded hover:bg-blue-700">
+                        Pay Deposit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function filterDeals() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const filterType = document.getElementById('filterType').value;
+        // In a real app, this would make an API call to filter deals
+        console.log('Filtering deals:', { searchTerm, filterType });
+    }
+
+    function rentItem(dealId) {
+        document.getElementById('rentModal').classList.remove('hidden');
+    }
+
+    function closeRentModal() {
+        document.getElementById('rentModal').classList.add('hidden');
+    }
+
+    function processRental() {
+        // In a real app, this would process the payment
+        alert('Payment processed successfully! The owner will contact you soon.');
+        closeRentModal();
+    }
+
+    function claimItem(dealId) {
+        // In a real app, this would reserve the item
+        alert('Item claimed! The owner will contact you soon.');
+    }
+
+    function contactOwner(userId) {
+        window.location.href = `/chat/${userId}`;
+    }
+</script>
+{% endblock %}

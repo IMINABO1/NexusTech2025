@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Louisiana Deals - {% block title %}{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1a56db',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between">
+                <div class="flex space-x-7">
+                    <a href="/" class="flex items-center py-4">
+                        <span class="font-semibold text-gray-500 text-lg">Louisiana Deals</span>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-3">
+                    {% if current_user.is_authenticated %}
+                        <a href="/deals" class="py-2 px-3 text-gray-700 hover:text-gray-900">Browse Deals</a>
+                        <a href="/create-deal" class="py-2 px-3 text-gray-700 hover:text-gray-900">Post Deal</a>
+                        <a href="/profile" class="py-2 px-3 text-gray-700 hover:text-gray-900">Profile</a>
+                        <a href="/logout" class="py-2 px-4 bg-red-500 text-white rounded hover:bg-red-600">Logout</a>
+                    {% else %}
+                        <a href="/login" class="py-2 px-4 bg-primary text-white rounded hover:bg-blue-700">Login</a>
+                        <a href="/register" class="py-2 px-4 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">Register</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="max-w-6xl mx-auto mt-4 px-4">
+                    <div class="p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+                        {{ message }}
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <main class="max-w-6xl mx-auto mt-6 px-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

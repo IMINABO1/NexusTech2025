@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="relative bg-primary">
+    <div class="max-w-6xl mx-auto px-4 py-16">
+        <div class="text-center text-white">
+            <h1 class="text-4xl font-bold mb-4">Find Amazing Deals in Louisiana</h1>
+            <p class="text-xl mb-8">Discover free items, great deals, and rental opportunities within 7 miles of your location</p>
+            <div class="max-w-xl mx-auto">
+                <form action="{{ url_for('deals') }}" method="GET" class="flex gap-4">
+                    <input type="text" name="location" placeholder="Enter your location in Louisiana" required
+                        class="flex-1 px-4 py-3 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-white">
+                    <button type="submit" class="px-8 py-3 bg-white text-primary rounded-lg hover:bg-gray-100">
+                        Search
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-6xl mx-auto px-4 py-12">
+    <!-- Featured Deals -->
+    <div class="mb-12">
+        <h2 class="text-2xl font-bold mb-6">Featured Deals</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for deal in featured_deals %}
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <img src="{{ deal.image or 'https://via.placeholder.com/300x200' }}" alt="{{ deal.title }}" 
+                    class="w-full h-48 object-cover">
+                <div class="p-4">
+                    <h3 class="text-lg font-semibold mb-2">{{ deal.title }}</h3>
+                    <p class="text-gray-600 mb-4 line-clamp-2">{{ deal.description }}</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-primary font-medium">
+                            {% if deal.is_rental %}
+                                Rental
+                            {% elif deal.price == 0 %}
+                                Free
+                            {% else %}
+                                ${{ "%.2f"|format(deal.price) }}
+                            {% endif %}
+                        </span>
+                        <span class="text-gray-500">{{ deal.location }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="py-12">
+        <h2 class="text-2xl font-bold mb-8 text-center">How It Works</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-2xl">1</span>
+                </div>
+                <h3 class="text-xl font-semibold mb-2">Create an Account</h3>
+                <p class="text-gray-600">Sign up to access local deals and start sharing items with your community</p>
+            </div>
+            <div class="text-center">
+                <div class="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-2xl">2</span>
+                </div>
+                <h3 class="text-xl font-semibold mb-2">Find or Post Deals</h3>
+                <p class="text-gray-600">Browse local deals or list your items for free, sale, or rent</p>
+            </div>
+            <div class="text-center">
+                <div class="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-2xl">3</span>
+                </div>
+                <h3 class="text-xl font-semibold mb-2">Connect & Share</h3>
+                <p class="text-gray-600">Chat with other users and help build a sustainable community</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
