@@ -9,6 +9,7 @@ import os
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key'  # Change this in production
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -269,3 +270,8 @@ def chat(user_id, deal_id=None):
     db.session.commit()
     
     return render_template('chat.html', recipient=recipient, messages=messages, deal=deal)
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()  # Create database tables
+    app.run(debug=True)
