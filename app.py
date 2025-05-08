@@ -271,6 +271,24 @@ def chat(user_id, deal_id=None):
     
     return render_template('chat.html', recipient=recipient, messages=messages, deal=deal)
 
+@app.route('/start-chat/<int:deal_id>')
+@login_required
+def start_chat(deal_id):
+    deal = Deal.query.get_or_404(deal_id)
+    return redirect(url_for('chat', user_id=deal.user_id, deal_id=deal_id))
+
+@app.route('/profile')
+@app.route('/profile/<int:user_id>')
+@login_required
+def profile(user_id=None):
+    if user_id is None:
+        user = current_user
+    else:
+        user = User.query.get_or_404(user_id)
+    
+    deals = Deal.query.filter_by(user_id=user.id).order_by(Deal.created_at.desc()).all()
+    return render_template('profile.html', user=user, deals=deals)
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Create database tables
