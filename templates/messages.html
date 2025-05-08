@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Messages{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8">
+    <h1 class="text-2xl font-bold mb-6">Your Messages</h1>
+    
+    <div class="bg-white rounded-lg shadow-md">
+        {% if conversations %}
+            {% for conv in conversations %}
+            <a href="{{ url_for('chat', user_id=conv.other_user.id, deal_id=conv.deal.id if conv.deal else None) }}" 
+               class="block border-b last:border-b-0 hover:bg-gray-50">
+                <div class="p-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-medium">{{ conv.other_user.username }}</h3>
+                            {% if conv.deal %}
+                            <p class="text-sm text-gray-600">Re: {{ conv.deal.title }}</p>
+                            {% endif %}
+                        </div>
+                        <span class="text-xs text-gray-500">{{ conv.last_message.timestamp.strftime('%I:%M %p') }}</span>
+                    </div>
+                    <p class="text-gray-600 text-sm mt-1 truncate">{{ conv.last_message.content }}</p>
+                    {% if conv.unread_count > 0 %}
+                    <span class="inline-block bg-primary text-white text-xs px-2 py-1 rounded-full mt-2">
+                        {{ conv.unread_count }} new
+                    </span>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        {% else %}
+            <div class="p-6 text-center text-gray-500">
+                <p>No messages yet.</p>
+                <a href="{{ url_for('deals') }}" class="text-primary hover:underline">Browse deals to start a conversation</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

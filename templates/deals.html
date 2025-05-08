@@ -30,7 +30,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="dealsGrid">
         {% for deal in deals %}
         <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <img src="{{ deal.image or 'https://via.placeholder.com/300x200' }}" alt="{{ deal.title }}" 
+            <img src="{{ deal.image_url or url_for('static', filename='images/placeholder.jpg') }}" alt="{{ deal.title }}" 
                 class="w-full h-48 object-cover">
             <div class="p-4">
                 <h3 class="text-lg font-semibold mb-2">{{ deal.title }}</h3>
@@ -57,9 +57,9 @@
                             Claim
                         </button>
                     {% endif %}
-                    <button onclick="contactOwner({{ deal.user_id }})" class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100">
-                        Contact
-                    </button>
+                    <a href="{{ url_for('start_chat', deal_id=deal.id) }}" class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100">
+                        Message Seller
+                    </a>
                 </div>
             </div>
         </div>
@@ -122,8 +122,18 @@
     }
 
     function claimItem(dealId) {
-        // In a real app, this would reserve the item
-        alert('Item claimed! The owner will contact you soon.');
+        if (confirm('Are you sure you want to claim this item?')) {
+            fetch(`/claim-deal/${dealId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                }
+            });
+        }
     }
 
     function contactOwner(userId) {

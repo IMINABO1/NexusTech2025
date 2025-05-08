@@ -2,14 +2,26 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from datetime import datetime
+import os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key'  # Change this in production
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+# Create upload folder if it doesn't exist
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # User model
 class User(UserMixin, db.Model):
@@ -42,6 +54,7 @@ class Message(db.Model):
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     deal_id = db.Column(db.Integer, db.ForeignKey('deal.id'), nullable=False)
+    read = db.Column(db.Boolean, default=False)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -131,12 +144,23 @@ def create_deal():
         is_rental = deal_type == 'rent'
         price = float(request.form.get('price', 0)) if deal_type == 'sale' else 0
         
+        # Handle image upload
+        image_url = None
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                image_url = url_for('static', filename=f'uploads/{filename}')
+        
         deal = Deal(
             title=title,
             description=description,
             price=price,
             is_rental=is_rental,
             location=location,
+            image_url=image_url,
             user_id=current_user.id
         )
         
@@ -147,50 +171,101 @@ def create_deal():
     
     return render_template('create_deal.html')
 
-@app.route('/chat/<int:user_id>')
-@login_required
-def chat(user_id):
-    recipient = User.query.get_or_404(user_id)
-    messages = Message.query.filter(
-        ((Message.sender_id == current_user.id) & (Message.recipient_id == user_id)) |
-        ((Message.sender_id == user_id) & (Message.recipient_id == current_user.id))
-    ).order_by(Message.timestamp).all()
-    
-    return render_template('chat.html', recipient=recipient, messages=messages)
-
 @app.route('/send-message', methods=['POST'])
 @login_required
 def send_message():
-    recipient_id = request.form.get('recipient_id')
-    content = request.form.get('content')
-    deal_id = request.form.get('deal_id')
+    data = request.get_json()
+    recipient_id = data.get('recipient_id')
+    content = data.get('content')
+    deal_id = data.get('deal_id')
     
     message = Message(
         content=content,
         sender_id=current_user.id,
         recipient_id=recipient_id,
-        deal_id=deal_id
+        deal_id=deal_id or 0  # Use 0 for general messages
     )
     
     db.session.add(message)
     db.session.commit()
-    return jsonify({'success': True})
+    return jsonify({'success': True, 'message_id': message.id})
 
-@app.route('/rate-user', methods=['POST'])
+@app.route('/check-messages')
 @login_required
-def rate_user():
-    user_id = request.form.get('user_id')
-    rating = float(request.form.get('rating'))
+def check_messages():
+    recipient_id = request.args.get('recipient_id', type=int)
+    last_message_id = request.args.get('last_message_id', type=int)
     
-    user = User.query.get_or_404(user_id)
-    total_rating = user.ratings * user.num_ratings
-    user.num_ratings += 1
-    user.ratings = (total_rating + rating) / user.num_ratings
+    new_messages = Message.query.filter(
+        Message.id > last_message_id,
+        ((Message.sender_id == current_user.id) & (Message.recipient_id == recipient_id)) |
+        ((Message.sender_id == recipient_id) & (Message.recipient_id == current_user.id))
+    ).order_by(Message.timestamp).all()
     
-    db.session.commit()
-    return jsonify({'success': True})
+    return jsonify({
+        'messages': [{
+            'id': msg.id,
+            'content': msg.content,
+            'sender_id': msg.sender_id,
+            'timestamp': msg.timestamp.isoformat()
+        } for msg in new_messages]
+    })
 
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True)
+@app.route('/messages')
+@login_required
+def messages():
+    # Get all messages involving the current user
+    all_messages = Message.query.filter(
+        (Message.sender_id == current_user.id) | 
+        (Message.recipient_id == current_user.id)
+    ).order_by(Message.timestamp.desc()).all()
+    
+    # Group messages by conversation (unique user pairs)
+    conversations = []
+    seen_pairs = set()
+    
+    for message in all_messages:
+        other_user_id = message.recipient_id if message.sender_id == current_user.id else message.sender_id
+        pair_key = tuple(sorted([current_user.id, other_user_id]))
+        
+        if pair_key not in seen_pairs:
+            other_user = User.query.get(other_user_id)
+            deal = Deal.query.get(message.deal_id) if message.deal_id != 0 else None
+            
+            # Count unread messages
+            unread_count = Message.query.filter(
+                Message.recipient_id == current_user.id,
+                Message.sender_id == other_user_id,
+                Message.id >= message.id  # Messages after or including this one
+            ).count()
+            
+            conversations.append({
+                'other_user': other_user,
+                'deal': deal,
+                'last_message': message,
+                'unread_count': unread_count
+            })
+            seen_pairs.add(pair_key)
+    
+    return render_template('messages.html', conversations=conversations)
+
+@app.route('/chat/<int:user_id>')
+@app.route('/chat/<int:user_id>/<int:deal_id>')
+@login_required
+def chat(user_id, deal_id=None):
+    recipient = User.query.get_or_404(user_id)
+    deal = Deal.query.get(deal_id) if deal_id else None
+    
+    # Get messages for this conversation
+    messages = Message.query.filter(
+        ((Message.sender_id == current_user.id) & (Message.recipient_id == user_id)) |
+        ((Message.sender_id == user_id) & (Message.recipient_id == current_user.id))
+    ).order_by(Message.timestamp).all()
+    
+    # Mark messages as read
+    for message in messages:
+        if message.recipient_id == current_user.id and not message.read:
+            message.read = True
+    db.session.commit()
+    
+    return render_template('chat.html', recipient=recipient, messages=messages, deal=deal)

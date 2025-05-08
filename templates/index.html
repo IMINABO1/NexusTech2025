@@ -28,7 +28,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for deal in featured_deals %}
             <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                <img src="{{ deal.image or 'https://via.placeholder.com/300x200' }}" alt="{{ deal.title }}" 
+                <img src="{{ deal.image_url or url_for('static', filename='images/placeholder.jpg') }}" alt="{{ deal.title }}" 
                     class="w-full h-48 object-cover">
                 <div class="p-4">
                     <h3 class="text-lg font-semibold mb-2">{{ deal.title }}</h3>
