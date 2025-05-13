@@ -1,50 +1,165 @@
 {% extends "base.html" %}
 
-{% block title %}Profile{% endblock %}
+{% block title %}{{ user.username }}'s Profile{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto py-8">
-    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h1 class="text-2xl font-bold mb-4">{{ user.username }}'s Profile</h1>
-        <div class="flex items-center mb-4">
-            <span class="text-gray-600">Email:</span>
-            <span class="ml-2">{{ user.email }}</span>
+<div class="max-w-7xl mx-auto">
+    <!-- Profile Header -->
+    <section class="bg-white rounded-xl shadow-soft overflow-hidden mb-8">
+        <div class="relative h-32 bg-gradient-to-r from-primary-600 to-primary-800">
+            <div class="absolute -bottom-12 left-8">
+                <div class="h-24 w-24 rounded-full border-4 border-white bg-white overflow-hidden">
+                    <img src="{{ url_for('static', filename='images/avatar-placeholder.png') }}" 
+                         alt="{{ user.username }}" 
+                         class="h-full w-full object-cover">
+                </div>
+            </div>
         </div>
-        <div class="flex items-center">
-            <span class="text-gray-600">Rating:</span>
-            <span class="ml-2">{{ "%.1f"|format(user.ratings) }} ({{ user.num_ratings }} ratings)</span>
+        <div class="pt-16 pb-8 px-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">{{ user.username }}</h1>
+                    {% if user.created_at %}
+                    <p class="text-gray-600">Member since {{ user.created_at.strftime('%B %Y') }}</p>
+                    {% endif %}
+                </div>
+                {% if current_user.id == user.id %}
+                <div class="mt-4 sm:mt-0">
+                    <a href="{{ url_for('create_deal') }}" 
+                       class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors duration-200">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Post a Deal
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- User Stats -->
+            <div class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="bg-gray-50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-gray-900">{{ deals|length }}</div>
+                    <div class="text-sm text-gray-600">Active Deals</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-gray-900">{{ user.ratings|round(1) }}</div>
+                    <div class="text-sm text-gray-600">Rating</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-gray-900">{{ user.num_ratings }}</div>
+                    <div class="text-sm text-gray-600">Reviews</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-gray-900">100%</div>
+                    <div class="text-sm text-gray-600">Response Rate</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- User's Deals -->
+    <section>
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold text-gray-900">
+                {% if current_user.id == user.id %}
+                    My Deals
+                {% else %}
+                    {{ user.username }}'s Deals
+                {% endif %}
+            </h2>
+            <div class="flex space-x-2">
+                <button class="px-3 py-1 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200">
+                    All
+                </button>
+                <button class="px-3 py-1 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200">
+                    Active
+                </button>
+                <button class="px-3 py-1 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200">
+                    Completed
+                </button>
         </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-bold mb-6">My Deals</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% if deals %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for deal in deals %}
-            <div class="border rounded-lg p-4">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold">{{ deal.title }}</h3>
-                    <span class="px-2 py-1 rounded text-sm {% if deal.status == 'available' %}bg-green-100 text-green-800{% elif deal.status == 'claimed' %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %}">
-                        {{ deal.status|capitalize }}
+                <div class="bg-white rounded-xl shadow-soft overflow-hidden hover:shadow-lg transition-shadow duration-200 group">
+                    {% if deal.image_url %}
+                    <div class="aspect-w-16 aspect-h-9 relative">
+                        <img src="{{ deal.image_url }}" alt="{{ deal.title }}" 
+                             class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-200">
+                        <div class="absolute top-2 right-2">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                       {% if deal.is_rental %}bg-purple-100 text-purple-800
+                                       {% elif deal.price == 0 %}bg-green-100 text-green-800
+                                       {% else %}bg-blue-100 text-blue-800{% endif %}">
+                                {% if deal.is_rental %}Rental
+                                {% elif deal.price == 0 %}Free
+                                {% else %}${{ "%.2f"|format(deal.price) }}{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-lg font-semibold text-gray-900 group-hover:text-primary-600 transition-colors duration-200">
+                                {{ deal.title }}
+                            </h3>
+                            <span class="text-sm text-gray-500">{{ deal.location }}</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ deal.description }}</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">
+                                Posted {{ deal.created_at.strftime('%b %d, %Y') }}
+                            </span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                       {% if deal.status == 'available' %}bg-green-100 text-green-800
+                                       {% elif deal.status == 'rented' %}bg-yellow-100 text-yellow-800
+                                       {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ deal.status|title }}
                     </span>
                 </div>
-                <img src="{{ deal.image_url or url_for('static', filename='images/placeholder.jpg') }}" 
-                    alt="{{ deal.title }}" class="w-full h-48 object-cover rounded mb-4">
-                <p class="text-gray-600 mb-4">{{ deal.description }}</p>
-                <div class="flex justify-between items-center text-sm text-gray-500">
-                    <span>{{ deal.created_at.strftime('%B %d, %Y') }}</span>
-                    <span>
-                        {% if deal.is_rental %}
-                            Rental
-                        {% elif deal.price == 0 %}
-                            Free
-                        {% else %}
-                            ${{ "%.2f"|format(deal.price) }}
+                        {% if current_user.id == user.id %}
+                        <div class="mt-4 flex items-center justify-between">
+                            <a href="#" class="text-primary-600 hover:text-primary-700 font-medium text-sm">
+                                Edit Deal
+                            </a>
+                            <button class="text-red-600 hover:text-red-700 font-medium text-sm">
+                                Delete
+                            </button>
+                        </div>
                         {% endif %}
-                    </span>
+                    </div>
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
+        {% else %}
+            <div class="text-center py-12 bg-white rounded-xl shadow-soft">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                </svg>
+                <h3 class="mt-2 text-lg font-medium text-gray-900">No deals posted yet</h3>
+                <p class="mt-1 text-sm text-gray-500">
+                    {% if current_user.id == user.id %}
+                        Get started by posting your first deal!
+                    {% else %}
+                        This user hasn't posted any deals yet.
+                    {% endif %}
+                </p>
+                {% if current_user.id == user.id %}
+                <div class="mt-6">
+                    <a href="{{ url_for('create_deal') }}" 
+                       class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors duration-200">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Post a Deal
+                    </a>
         </div>
+                {% endif %}
     </div>
+        {% endif %}
+    </section>
 </div>
 {% endblock %}

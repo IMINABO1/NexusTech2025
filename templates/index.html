@@ -3,80 +3,218 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
-<div class="relative bg-primary">
-    <div class="max-w-6xl mx-auto px-4 py-16">
-        <div class="text-center text-white">
-            <h1 class="text-4xl font-bold mb-4">Find Amazing Deals in Louisiana</h1>
-            <p class="text-xl mb-8">Discover free items, great deals, and rental opportunities within 7 miles of your location</p>
-            <div class="max-w-xl mx-auto">
-                <form action="{{ url_for('deals') }}" method="GET" class="flex gap-4">
-                    <input type="text" name="location" placeholder="Enter your location in Louisiana" required
-                        class="flex-1 px-4 py-3 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-white">
-                    <button type="submit" class="px-8 py-3 bg-white text-primary rounded-lg hover:bg-gray-100">
-                        Search
+<!-- Hero Section -->
+<section class="relative bg-gradient-to-r from-primary-600 to-primary-800 rounded-2xl overflow-hidden mb-12">
+    <img src="{{ url_for('static', filename='uploads/mardi.jpg') }}" alt="Mardi Gras" class="absolute inset-0 w-full h-full object-cover opacity-20 pointer-events-none select-none z-0" />
+    <div class="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]"></div>
+    <div class="relative max-w-7xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:px-8 z-10">
+        <div class="text-center">
+            <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
+                Find Amazing Deals in Louisiana
+            </h1>
+            <p class="mt-6 text-xl text-primary-100 max-w-3xl mx-auto">
+                Discover local deals, rentals, and free items within 7 miles of your location
+            </p>
+            <div class="mt-10 max-w-xl mx-auto">
+                <form action="{{ url_for('deals') }}" method="GET" class="flex flex-col sm:flex-row gap-4">
+                    <input type="text" name="location" placeholder="Enter your location" 
+                           class="flex-1 min-w-0 px-4 py-3 rounded-lg border-0 focus:ring-2 focus:ring-primary-500 text-gray-900 placeholder-gray-500">
+                    <button type="submit" 
+                            class="px-6 py-3 bg-white text-primary-600 font-semibold rounded-lg hover:bg-primary-50 transition-all duration-200 hover:shadow-xl hover:-translate-y-1 hover:scale-105">
+                        Search Deals
                     </button>
                 </form>
             </div>
         </div>
     </div>
-</div>
+</section>
 
-<div class="max-w-6xl mx-auto px-4 py-12">
-    <!-- Featured Deals -->
-    <div class="mb-12">
-        <h2 class="text-2xl font-bold mb-6">Featured Deals</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {% for deal in featured_deals %}
-            <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                <img src="{{ deal.image_url or url_for('static', filename='images/placeholder.jpg') }}" alt="{{ deal.title }}" 
-                    class="w-full h-48 object-cover">
-                <div class="p-4">
-                    <h3 class="text-lg font-semibold mb-2">{{ deal.title }}</h3>
-                    <p class="text-gray-600 mb-4 line-clamp-2">{{ deal.description }}</p>
-                    <div class="flex justify-between items-center">
-                        <span class="text-primary font-medium">
-                            {% if deal.is_rental %}
-                                Rental
-                            {% elif deal.price == 0 %}
-                                Free
-                            {% else %}
-                                ${{ "%.2f"|format(deal.price) }}
-                            {% endif %}
-                        </span>
-                        <span class="text-gray-500">{{ deal.location }}</span>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
+<!-- Featured Deals and Carousel Section -->
+<section class="mb-12">
+    <!-- Featured Deals Heading -->
+    <div class="text-center mb-8">
+        <h2 class="text-2xl font-bold text-gray-900">Featured Deals</h2>
     </div>
-
-    <!-- How It Works -->
-    <div class="py-12">
-        <h2 class="text-2xl font-bold mb-8 text-center">How It Works</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="text-center">
-                <div class="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span class="text-2xl">1</span>
+    <!-- Carousel and View All Deals Button -->
+    <div class="relative mb-8">
+        <a href="{{ url_for('deals') }}" class="absolute top-0 right-0 z-10 bg-primary-600 text-white px-6 py-2 font-semibold shadow-none hover:bg-primary-700 transition-colors duration-200" style="border-radius: 0;">View all deals</a>
+        <!-- Carousel Container -->
+        <div class="overflow-hidden">
+            <div class="carousel-container flex transition-transform duration-500 ease-out w-full">
+                <div class="w-full flex-shrink-0">
+                    <img src="{{ url_for('static', filename='uploads/car_image.jpg') }}" alt="Car Image" class="w-full h-64 md:h-96 object-cover rounded-lg">
                 </div>
-                <h3 class="text-xl font-semibold mb-2">Create an Account</h3>
-                <p class="text-gray-600">Sign up to access local deals and start sharing items with your community</p>
-            </div>
-            <div class="text-center">
-                <div class="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span class="text-2xl">2</span>
+                <div class="w-full flex-shrink-0">
+                    <img src="{{ url_for('static', filename='uploads/bi_image.jpg') }}" alt="BI Image" class="w-full h-64 md:h-96 object-cover rounded-lg">
                 </div>
-                <h3 class="text-xl font-semibold mb-2">Find or Post Deals</h3>
-                <p class="text-gray-600">Browse local deals or list your items for free, sale, or rent</p>
-            </div>
-            <div class="text-center">
-                <div class="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span class="text-2xl">3</span>
-                </div>
-                <h3 class="text-xl font-semibold mb-2">Connect & Share</h3>
-                <p class="text-gray-600">Chat with other users and help build a sustainable community</p>
             </div>
         </div>
+        <!-- Navigation Controls -->
+        <button class="carousel-prev absolute left-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-75 rounded-full p-2 hover:bg-opacity-100 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </button>
+        <button class="carousel-next absolute right-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-75 rounded-full p-2 hover:bg-opacity-100 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </button>
     </div>
-</div>
+    <!-- Featured Deals Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {% for deal in featured_deals %}
+        <div class="bg-white rounded-xl shadow-soft overflow-hidden hover:shadow-lg transition-shadow duration-200">
+            {% if deal.image_url %}
+            <div class="aspect-w-16 aspect-h-9">
+                <img src="{{ deal.image_url }}" alt="{{ deal.title }}" 
+                     class="w-full h-48 object-cover">
+            </div>
+            {% endif %}
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                               {% if deal.is_rental %}bg-purple-100 text-purple-800
+                               {% elif deal.price == 0 %}bg-green-100 text-green-800
+                               {% else %}bg-blue-100 text-blue-800{% endif %}">
+                        {% if deal.is_rental %}Rental
+                        {% elif deal.price == 0 %}Free
+                        {% else %}${{ "%.2f"|format(deal.price) }}{% endif %}
+                    </span>
+                    <span class="text-sm text-gray-500">{{ deal.location }}</span>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ deal.title }}</h3>
+                <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ deal.description }}</p>
+                <div class="flex items-center justify-between">
+                    <a href="{{ url_for('start_chat', deal_id=deal.id) }}" 
+                       class="text-primary-600 hover:text-primary-700 font-medium text-sm transition-all duration-200 hover:shadow-xl hover:-translate-y-1 hover:scale-105">
+                        Contact Seller
+                    </a>
+                    <span class="text-xs text-gray-500">
+                        {{ deal.created_at.strftime('%b %d, %Y') }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- How It Works Section (Redesigned, Blue Cards) -->
+<section class="py-16 bg-gray-50">
+  <h2 class="text-3xl font-bold text-gray-800 mb-8 text-center">How It Works</h2>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+    <!-- Card 1 -->
+    <div class="how-card opacity-0 transform translate-y-2 hover:shadow-lg hover:scale-105 transition duration-200 rounded-xl bg-primary-600 p-6 flex flex-col items-center text-center">
+      <div class="bg-white p-4 rounded-full mb-4">
+        <!-- Magnifying glass SVG -->
+        <svg class="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="7" stroke="currentColor"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor"/>
+        </svg>
+      </div>
+      <h3 class="card-title text-xl font-semibold text-white mb-2">Find Deals</h3>
+      <p class="card-desc text-primary-100">Browse through local deals, rentals, and free items in your area</p>
+    </div>
+    <!-- Card 2 -->
+    <div class="how-card opacity-0 transform translate-y-2 hover:shadow-lg hover:scale-105 transition duration-200 rounded-xl bg-primary-600 p-6 flex flex-col items-center text-center">
+      <div class="bg-white p-4 rounded-full mb-4">
+        <!-- Chat bubble SVG -->
+        <svg class="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6A8.38 8.38 0 0112.5 3a8.5 8.5 0 018.5 8.5z"/>
+        </svg>
+      </div>
+      <h3 class="card-title text-xl font-semibold text-white mb-2">Contact Seller</h3>
+      <p class="card-desc text-primary-100">Message the seller directly through our secure chat system</p>
+    </div>
+    <!-- Card 3 -->
+    <div class="how-card opacity-0 transform translate-y-2 hover:shadow-lg hover:scale-105 transition duration-200 rounded-xl bg-primary-600 p-6 flex flex-col items-center text-center">
+      <div class="bg-white p-4 rounded-full mb-4">
+        <!-- Checkmark SVG -->
+        <svg class="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <h3 class="card-title text-xl font-semibold text-white mb-2">Make a Deal</h3>
+      <p class="card-desc text-primary-100">Arrange pickup or delivery and complete your transaction</p>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Staggered fade/slide in for each card
+  document.querySelectorAll('.how-card').forEach((card, i) => {
+    setTimeout(() => {
+      card.classList.remove('opacity-0', 'translate-y-2');
+      card.classList.add('opacity-100', 'translate-y-0', 'transition', 'duration-500', 'ease-out');
+    }, 300 * i);
+  });
+
+  // Carousel functionality
+  document.addEventListener('DOMContentLoaded', function() {
+    const carousel = document.querySelector('.carousel-container');
+    const slides = carousel.querySelectorAll('div');
+    const prevBtn = document.querySelector('.carousel-prev');
+    const nextBtn = document.querySelector('.carousel-next');
+    let currentSlide = 0;
+    const slideCount = slides.length;
+
+    function updateCarousel() {
+      carousel.style.transform = `translateX(-${currentSlide * 100}%)`;
+    }
+
+    function nextSlide() {
+      currentSlide = (currentSlide + 1) % slideCount;
+      updateCarousel();
+    }
+
+    function prevSlide() {
+      currentSlide = (currentSlide - 1 + slideCount) % slideCount;
+      updateCarousel();
+    }
+
+    // Auto-rotate every 3 seconds
+    let autoRotateInterval = setInterval(nextSlide, 3000);
+
+    // Manual navigation
+    prevBtn.addEventListener('click', () => {
+      clearInterval(autoRotateInterval);
+      prevSlide();
+      autoRotateInterval = setInterval(nextSlide, 3000);
+    });
+
+    nextBtn.addEventListener('click', () => {
+      clearInterval(autoRotateInterval);
+      nextSlide();
+      autoRotateInterval = setInterval(nextSlide, 3000);
+    });
+
+    // Touch swipe support
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    carousel.addEventListener('touchstart', e => {
+      touchStartX = e.changedTouches[0].screenX;
+    });
+
+    carousel.addEventListener('touchend', e => {
+      touchEndX = e.changedTouches[0].screenX;
+      handleSwipe();
+    });
+
+    function handleSwipe() {
+      const swipeThreshold = 50;
+      if (touchEndX < touchStartX - swipeThreshold) {
+        clearInterval(autoRotateInterval);
+        nextSlide();
+        autoRotateInterval = setInterval(nextSlide, 3000);
+      }
+      if (touchEndX > touchStartX + swipeThreshold) {
+        clearInterval(autoRotateInterval);
+        prevSlide();
+        autoRotateInterval = setInterval(nextSlide, 3000);
+      }
+    }
+  });
+</script>
 {% endblock %}
