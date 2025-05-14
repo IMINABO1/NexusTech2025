@@ -57,9 +57,8 @@
                                    {% elif deal.price == 0 %}bg-green-100 text-green-800
                                    {% else %}bg-blue-100 text-blue-800{% endif %}">
                             {% if deal.is_rental %}Rental
-                            {% elif deal.price == 0 %}Free
+                            {% elif deal.price == 0 %}Free{% if deal.collection_limit %} • limit:{{ deal.collection_limit }}{% endif %}
                             {% else %}${{ "%.2f"|format(deal.price) }}{% endif %}
-                            {% if deal.quantity > 1 %} • {{ deal.quantity }} available{% endif %}
                         </span>
             </div>
                 </div>
@@ -84,16 +83,29 @@
                         </span>
                     </div>
                     <div class="mt-4 flex items-center justify-between">
+                        {% if deal.price == 0 and not deal.is_rental and deal.user_id != current_user.id %}
+                            <form action="{{ url_for('collect_deal', deal_id=deal.id) }}" method="POST" class="flex-1 mr-2">
+                                <button type="submit" 
+                                        class="w-full text-center bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200 text-sm font-medium">
+                                    Collect Item
+                                </button>
+                            </form>
+                        {% elif deal.is_rental and deal.user_id != current_user.id %}
+                            <button onclick="showPaymentModal({{ deal.id }}, 'rent', {{ deal.price }})" 
+                                    class="flex-1 mr-2 text-center bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors duration-200 text-sm font-medium">
+                                Rent for ${{ "%.2f"|format(deal.price) }}
+                            </button>
+                        {% elif not deal.is_rental and deal.price > 0 and deal.user_id != current_user.id %}
+                            <button onclick="showPaymentModal({{ deal.id }}, 'buy', {{ deal.price }})" 
+                                    class="flex-1 mr-2 text-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm font-medium">
+                                Buy for ${{ "%.2f"|format(deal.price) }}
+                            </button>
+                        {% endif %}
                         <a href="{{ url_for('start_chat', deal_id=deal.id) }}" 
-                           class="text-primary-600 hover:text-primary-700 font-medium text-sm">
-                            Contact Seller
+                           class="{% if deal.user_id != current_user.id %}flex-1{% endif %} text-center text-primary-600 hover:text-primary-700 font-medium text-sm">
+                            Contact {% if deal.price == 0 %}Giver{% else %}Seller{% endif %}
                         </a>
-                        <a href="#" class="text-gray-400 hover:text-gray-500">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                            </svg>
-                        </a>
-                </div>
+                    </div>
                 </div>
             </div>
             {% endfor %}
@@ -105,51 +117,149 @@
             </svg>
             <h3 class="mt-2 text-lg font-medium text-gray-900">No deals found</h3>
             <p class="mt-1 text-sm text-gray-500">Try adjusting your search or filter criteria</p>
-    </div>
+        </div>
     {% endif %}
 </section>
+
+<!-- Payment Modal -->
+<div id="paymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-xl p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold text-gray-900" id="modalTitle">Payment Details</h3>
+            <button onclick="closePaymentModal()" class="text-gray-500 hover:text-gray-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <form id="paymentForm" onsubmit="processPayment(event)" class="space-y-4">
+            <input type="hidden" id="dealId" name="dealId">
+            <input type="hidden" id="paymentType" name="paymentType">
+            <input type="hidden" id="amount" name="amount">
+            
+            <div>
+                <label for="cardName" class="block text-sm font-medium text-gray-700 mb-1">Name on Card</label>
+                <input type="text" id="cardName" name="cardName" required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+            </div>
+            
+            <div>
+                <label for="cardNumber" class="block text-sm font-medium text-gray-700 mb-1">Card Number</label>
+                <input type="text" id="cardNumber" name="cardNumber" required
+                       pattern="[0-9]{16}" maxlength="16" placeholder="1234567812345678"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="expiry" class="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
+                    <input type="text" id="expiry" name="expiry" required
+                           pattern="(0[1-9]|1[0-2])\/[0-9]{2}" placeholder="MM/YY"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <label for="cvv" class="block text-sm font-medium text-gray-700 mb-1">CVV</label>
+                    <input type="text" id="cvv" name="cvv" required
+                           pattern="[0-9]{3,4}" maxlength="4" placeholder="123"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                </div>
+            </div>
+            
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email for Receipt</label>
+                <input type="email" id="email" name="email" required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+            </div>
+
+            <div class="pt-4">
+                <button type="submit" class="w-full bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors duration-200">
+                    Complete Payment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    function filterDeals() {
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        const filterType = document.getElementById('filterType').value;
-        // In a real app, this would make an API call to filter deals
-        console.log('Filtering deals:', { searchTerm, filterType });
+    let currentDealId, currentPaymentType, currentAmount;
+
+    function showPaymentModal(dealId, type, amount) {
+        currentDealId = dealId;
+        currentPaymentType = type;
+        currentAmount = amount;
+        
+        document.getElementById('dealId').value = dealId;
+        document.getElementById('paymentType').value = type;
+        document.getElementById('amount').value = amount;
+        document.getElementById('modalTitle').textContent = `Payment for ${type === 'rent' ? 'Rental' : 'Purchase'} - $${amount.toFixed(2)}`;
+        document.getElementById('paymentModal').classList.remove('hidden');
     }
 
-    function rentItem(dealId) {
-        document.getElementById('rentModal').classList.remove('hidden');
+    function closePaymentModal() {
+        document.getElementById('paymentModal').classList.add('hidden');
+        document.getElementById('paymentForm').reset();
     }
 
-    function closeRentModal() {
-        document.getElementById('rentModal').classList.add('hidden');
+    function processPayment(event) {
+        event.preventDefault();
+        
+        const formData = new FormData(event.target);
+        const paymentData = {
+            dealId: currentDealId,
+            type: currentPaymentType,
+            amount: currentAmount,
+            cardName: formData.get('cardName'),
+            cardNumber: formData.get('cardNumber'),
+            expiry: formData.get('expiry'),
+            cvv: formData.get('cvv'),
+            email: formData.get('email')
+        };
+
+        // Send payment data to server
+        fetch('/process-payment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(paymentData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Payment successful! A receipt has been sent to your email.');
+                window.location.reload();
+            } else {
+                alert('Payment failed: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('An error occurred while processing the payment.');
+            console.error('Payment error:', error);
+        })
+        .finally(() => {
+            closePaymentModal();
+        });
     }
 
-    function processRental() {
-        // In a real app, this would process the payment
-        alert('Payment processed successfully! The owner will contact you soon.');
-        closeRentModal();
-    }
-
-    function claimItem(dealId) {
-        if (confirm('Are you sure you want to claim this item?')) {
-            fetch(`/claim-deal/${dealId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            }).then(response => {
-                if (response.ok) {
-                    window.location.reload();
-                }
-            });
+    // Format card expiry date as MM/YY
+    document.getElementById('expiry').addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length >= 2) {
+            value = value.slice(0,2) + '/' + value.slice(2);
         }
-    }
+        e.target.value = value.slice(0,5);
+    });
 
-    function contactOwner(userId) {
-        window.location.href = `/chat/${userId}`;
-    }
+    // Format card number in groups of 4
+    document.getElementById('cardNumber').addEventListener('input', function(e) {
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0,16);
+    });
+
+    // Only allow numbers in CVV
+    document.getElementById('cvv').addEventListener('input', function(e) {
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0,4);
+    });
 </script>
 {% endblock %}

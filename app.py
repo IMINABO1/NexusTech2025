@@ -32,7 +32,7 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(120), nullable=False)
     ratings = db.Column(db.Float, default=0.0)
     num_ratings = db.Column(db.Integer, default=0)
-    avatar_url = db.Column(db.String(200), default='images/default-avatar.png')  # Add this line
+    avatar_url = db.Column(db.String(200), default='images/default-avatar.png')
     deals = db.relationship('Deal', backref='owner', lazy=True)
 
 # Deal model
@@ -47,7 +47,20 @@ class Deal(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20), default='available')  # available, rented, completed
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    quantity = db.Column(db.Integer, default=1)  # Add this line
+    quantity = db.Column(db.Integer, default=1)
+    collection_limit = db.Column(db.Integer, nullable=True)
+    collected_by = db.relationship('Collection', backref='deal', lazy=True)
+
+# Collection model for tracking who has collected free items
+class Collection(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    deal_id = db.Column(db.Integer, db.ForeignKey('deal.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    collected_at = db.Column(db.DateTime, default=datetime.utcnow)
+    quantity = db.Column(db.Integer, default=1)
+    
+    # Add relationship to User model with a different backref name
+    collector = db.relationship('User', backref='items_collected', lazy=True)
 
 # Message model for chat
 class Message(db.Model):
@@ -58,6 +71,16 @@ class Message(db.Model):
     recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     deal_id = db.Column(db.Integer, db.ForeignKey('deal.id'), nullable=False)
     read = db.Column(db.Boolean, default=False)
+
+# Transaction model for payment processing
+class Transaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    deal_id = db.Column(db.Integer, db.ForeignKey('deal.id'), nullable=False)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    transaction_type = db.Column(db.String(20), nullable=False)  # 'purchase' or 'rental'
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    receipt_sent = db.Column(db.Boolean, default=False)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -143,10 +166,17 @@ def create_deal():
         description = request.form.get('description')
         deal_type = request.form.get('type')
         location = request.form.get('location')
-        quantity = int(request.form.get('quantity', 1))  # Add this line
+        quantity = int(request.form.get('quantity', 1))
         
         is_rental = deal_type == 'rent'
         price = float(request.form.get('price', 0)) if deal_type == 'sale' else 0
+        
+        # Handle collection limit for free items
+        collection_limit = None
+        if deal_type == 'free' and not request.form.get('no_limit'):
+            collection_limit = request.form.get('collection_limit')
+            if collection_limit:
+                collection_limit = int(collection_limit)
         
         # Handle image upload
         image_url = None
@@ -166,7 +196,8 @@ def create_deal():
             location=location,
             image_url=image_url,
             user_id=current_user.id,
-            quantity=quantity  # Add this line
+            quantity=quantity,
+            collection_limit=collection_limit if deal_type == 'free' else None
         )
         
         db.session.add(deal)
@@ -327,6 +358,102 @@ def profile(user_id=None):
     
     deals = Deal.query.filter_by(user_id=user.id).order_by(Deal.created_at.desc()).all()
     return render_template('profile.html', user=user, deals=deals)
+
+@app.route('/collect-deal/<int:deal_id>', methods=['POST'])
+@login_required
+def collect_deal(deal_id):
+    deal = Deal.query.get_or_404(deal_id)
+    
+    # Check if the deal is available and free
+    if deal.status != 'available' or deal.price > 0 or deal.is_rental:
+        flash('This item is not available for collection', 'error')
+        return redirect(url_for('deals'))
+      # Check if the user has already collected this deal
+    existing_collection = Collection.query.filter_by(
+        deal_id=deal.id,
+        user_id=current_user.id
+    ).first()
+    
+    # Check collection limit
+    if existing_collection and deal.collection_limit:
+        if existing_collection.quantity >= deal.collection_limit:
+            flash(f'You can only collect up to {deal.collection_limit} of this item', 'error')
+            return redirect(url_for('deals'))
+    elif not existing_collection and deal.collection_limit:
+        # First time collecting, make sure they don't exceed the limit
+        if deal.collection_limit < 1:
+            flash('Invalid collection limit', 'error')
+            return redirect(url_for('deals'))
+    
+    # Create new collection or update existing one
+    if existing_collection:
+        existing_collection.quantity += 1
+    else:
+        collection = Collection(
+            deal_id=deal.id,
+            user_id=current_user.id,
+            quantity=1
+        )
+        db.session.add(collection)
+    
+    # Update deal quantity
+    deal.quantity -= 1
+    if deal.quantity == 0:
+        deal.status = 'completed'
+    
+    db.session.commit()
+    flash('Item collected successfully!', 'success')
+    return redirect(url_for('deals'))
+
+def record_transaction(transaction):
+    try:
+        # Mark transaction as processed
+        transaction.receipt_sent = True
+        db.session.commit()
+    except Exception as e:
+        print(f"Error recording transaction: {str(e)}")
+        raise
+
+@app.route('/process-payment', methods=['POST'])
+@login_required
+def process_payment():
+    try:
+        data = request.get_json()
+        deal_id = data.get('dealId')
+        payment_type = data.get('type')
+        amount = data.get('amount')
+        email = data.get('email')
+        
+        deal = Deal.query.get_or_404(deal_id)
+        
+        # Check if deal is still available
+        if deal.status != 'available':
+            return jsonify({'success': False, 'error': 'This item is no longer available'})
+        
+        # Create transaction record
+        transaction = Transaction(
+            deal_id=deal_id,
+            buyer_id=current_user.id,
+            amount=amount,
+            transaction_type=payment_type
+        )
+        
+        # Update deal status
+        if payment_type == 'buy':
+            deal.status = 'completed'
+        elif payment_type == 'rent':
+            deal.status = 'rented'
+        
+        db.session.add(transaction)
+        db.session.commit()
+          # Record the transaction
+        record_transaction(transaction)
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':
     with app.app_context():

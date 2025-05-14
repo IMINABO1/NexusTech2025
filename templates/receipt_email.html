@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 20px;
+        }
+        .details {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .total {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-top: 20px;
+            text-align: right;
+        }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{% if is_buyer %}Receipt{% else %}Transaction Notification{% endif %}</h1>
+        <p>{{ transaction.timestamp.strftime('%B %d, %Y') }}</p>
+    </div>
+
+    <div class="content">
+        <p>{% if is_buyer %}Thank you for your {{ transaction.transaction_type }}!{% else %}You have a new {{ transaction.transaction_type }}!{% endif %}</p>
+        
+        <div class="details">
+            <div class="detail-row">
+                <span>Item:</span>
+                <span>{{ deal.title }}</span>
+            </div>
+            <div class="detail-row">
+                <span>Type:</span>
+                <span>{{ transaction.transaction_type|title }}</span>
+            </div>
+            <div class="detail-row">
+                <span>{% if is_buyer %}Seller{% else %}Buyer{% endif %}:</span>
+                <span>{{ other_party }}</span>
+            </div>
+            <div class="detail-row">
+                <span>Location:</span>
+                <span>{{ deal.location }}</span>
+            </div>
+            <div class="total">
+                <span>Total Amount: ${{ "%.2f"|format(transaction.amount) }}</span>
+            </div>
+        </div>
+
+        <p>{% if is_buyer %}
+            You can contact the seller through our chat system to arrange collection/delivery.
+        {% else %}
+            The buyer will contact you through our chat system to arrange collection/delivery.
+        {% endif %}</p>
+    </div>
+
+    <div class="footer">
+        <p>Thank you for using NexusTech!</p>
+        <p>If you have any questions, please don't hesitate to contact us.</p>
+    </div>
+</body>
+</html>

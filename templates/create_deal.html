@@ -55,6 +55,22 @@
                         <input type="number" id="quantity" name="quantity" min="1" value="1" required
                             class="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-200">
                     </div>
+                    
+                    <div id="collectionLimitContainer" class="hidden">
+                        <label for="collection_limit" class="block text-sm font-medium text-gray-700 mb-2">Collection Limit Per Person</label>
+                        <div class="flex items-center space-x-4">
+                            <div class="flex-1">
+                                <input type="number" id="collection_limit" name="collection_limit" min="1"
+                                    class="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-200"
+                                    placeholder="How many items each person can collect">
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="no_limit" name="no_limit" class="h-4 w-4 text-primary-600 rounded border-gray-300">
+                                <label for="no_limit" class="ml-2 text-sm text-gray-700">No limit</label>
+                            </div>
+                        </div>
+                        <p class="mt-1 text-sm text-gray-500">Set how many items each person can collect, or check "No limit" to allow unlimited collection.</p>
+                    </div>
 
                     <div>
                         <label for="location" class="block text-sm font-medium text-gray-700 mb-2">Location</label>
@@ -84,14 +100,42 @@
 <script>
     const typeSelect = document.getElementById('type');
     const priceField = document.getElementById('priceField');
+    const collectionLimitContainer = document.getElementById('collectionLimitContainer');
+    const collectionLimitInput = document.getElementById('collection_limit');
+    const noLimitCheckbox = document.getElementById('no_limit');
 
     typeSelect.addEventListener('change', function() {
         if (this.value === 'sale') {
             priceField.classList.remove('hidden');
+            collectionLimitContainer.classList.add('hidden');
+            collectionLimitInput.value = '';
+            noLimitCheckbox.checked = false;
+        } else if (this.value === 'free') {
+            priceField.classList.add('hidden');
+            document.getElementById('price').value = '';
+            collectionLimitContainer.classList.remove('hidden');
+            collectionLimitInput.disabled = false;
         } else {
             priceField.classList.add('hidden');
             document.getElementById('price').value = '';
+            collectionLimitContainer.classList.add('hidden');
+            collectionLimitInput.value = '';
+            noLimitCheckbox.checked = false;
         }
     });
+
+    noLimitCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            collectionLimitInput.value = '';
+            collectionLimitInput.disabled = true;
+        } else {
+            collectionLimitInput.disabled = false;
+        }
+    });
+
+    // Show collection limit container initially if type is 'free'
+    if (typeSelect.value === 'free') {
+        collectionLimitContainer.classList.remove('hidden');
+    }
 </script>
 {% endblock %}
