@@ -59,6 +59,7 @@
                             {% if deal.is_rental %}Rental
                             {% elif deal.price == 0 %}Free
                             {% else %}${{ "%.2f"|format(deal.price) }}{% endif %}
+                            {% if deal.quantity > 1 %} • {{ deal.quantity }} available{% endif %}
                         </span>
             </div>
                 </div>
@@ -73,9 +74,9 @@
                     <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ deal.description }}</p>
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
-                            <img src="{{ url_for('static', filename='images/avatar-placeholder.png') }}" 
+                            <img src="{{ url_for('static', filename=deal.owner.avatar_url) }}" 
                                  alt="{{ deal.owner.username }}" 
-                                 class="w-6 h-6 rounded-full">
+                                 class="w-6 h-6 rounded-full object-cover">
                             <span class="text-sm text-gray-600">{{ deal.owner.username }}</span>
                         </div>
                         <span class="text-xs text-gray-500">

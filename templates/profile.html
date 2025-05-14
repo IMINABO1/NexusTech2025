@@ -9,7 +9,7 @@
         <div class="relative h-32 bg-gradient-to-r from-primary-600 to-primary-800">
             <div class="absolute -bottom-12 left-8">
                 <div class="h-24 w-24 rounded-full border-4 border-white bg-white overflow-hidden">
-                    <img src="{{ url_for('static', filename='images/avatar-placeholder.png') }}" 
+                    <img src="{{ url_for('static', filename=user.avatar_url) }}" 
                          alt="{{ user.username }}" 
                          class="h-full w-full object-cover">
                 </div>
@@ -122,7 +122,7 @@
                 </div>
                         {% if current_user.id == user.id %}
                         <div class="mt-4 flex items-center justify-between">
-                            <a href="#" class="text-primary-600 hover:text-primary-700 font-medium text-sm">
+                            <a href="{{ url_for('edit_deal', deal_id=deal.id) }}" class="text-primary-600 hover:text-primary-700 font-medium text-sm">
                                 Edit Deal
                             </a>
                             <button class="text-red-600 hover:text-red-700 font-medium text-sm">

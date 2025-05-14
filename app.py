@@ -32,6 +32,7 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(120), nullable=False)
     ratings = db.Column(db.Float, default=0.0)
     num_ratings = db.Column(db.Integer, default=0)
+    avatar_url = db.Column(db.String(200), default='images/default-avatar.png')  # Add this line
     deals = db.relationship('Deal', backref='owner', lazy=True)
 
 # Deal model
@@ -46,6 +47,7 @@ class Deal(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20), default='available')  # available, rented, completed
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    quantity = db.Column(db.Integer, default=1)  # Add this line
 
 # Message model for chat
 class Message(db.Model):
@@ -141,6 +143,7 @@ def create_deal():
         description = request.form.get('description')
         deal_type = request.form.get('type')
         location = request.form.get('location')
+        quantity = int(request.form.get('quantity', 1))  # Add this line
         
         is_rental = deal_type == 'rent'
         price = float(request.form.get('price', 0)) if deal_type == 'sale' else 0
@@ -162,7 +165,8 @@ def create_deal():
             is_rental=is_rental,
             location=location,
             image_url=image_url,
-            user_id=current_user.id
+            user_id=current_user.id,
+            quantity=quantity  # Add this line
         )
         
         db.session.add(deal)
@@ -171,6 +175,41 @@ def create_deal():
         return redirect(url_for('deals'))
     
     return render_template('create_deal.html')
+
+@app.route('/edit-deal/<int:deal_id>', methods=['GET', 'POST'])
+@login_required
+def edit_deal(deal_id):
+    deal = Deal.query.get_or_404(deal_id)
+    
+    # Check if the current user owns this deal
+    if deal.user_id != current_user.id:
+        flash('You can only edit your own deals', 'error')
+        return redirect(url_for('deals'))
+    
+    if request.method == 'POST':
+        deal.title = request.form.get('title')
+        deal.description = request.form.get('description')
+        deal.deal_type = request.form.get('type')
+        deal.location = request.form.get('location')
+        deal.quantity = int(request.form.get('quantity', 1))
+        
+        deal.is_rental = deal.deal_type == 'rent'
+        deal.price = float(request.form.get('price', 0)) if deal.deal_type == 'sale' else 0
+        
+        # Handle image upload
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                deal.image_url = url_for('static', filename=f'uploads/{filename}')
+        
+        db.session.commit()
+        flash('Deal updated successfully!', 'success')
+        return redirect(url_for('profile'))
+    
+    return render_template('edit_deal.html', deal=deal)
 
 @app.route('/send-message', methods=['POST'])
 @login_required
